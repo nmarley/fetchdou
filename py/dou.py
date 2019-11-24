@@ -7,12 +7,10 @@ import http.cookiejar as cookielib
 import datetime
 import json
 
-
 class DOUGet(object):
 
     def __init__(self, **kwargs):
         self.agent = self._browser()
-        self.init_url_re = 'http://www.in.gov.br/leiturajornal?data=DD-MM-YYYY#daypicker'
         self.pdf_dl_url = 'http://pesquisa.in.gov.br/imprensa/core/jornalList.action'
 
     def _browser(self):
@@ -32,47 +30,58 @@ class DOUGet(object):
 
         return br
 
+    def get_dou_url_for_day(self, day):
+        year = "%04d" % day.year
+        month = "%02d" % day.month
+        day = "%02d" % day.day
+        #year = day.year
+        #month = day.month
+        #day = day.day
+
+        url = f'http://www.in.gov.br/leiturajornal?data={day}-{month}-{year}#daypicker'
+
+        return url
+
     def get_initial_page(self, day):
-        year = day.year
-        month = day.month
-        day = day.day
+        url = self.get_dou_url_for_day(day)
+        print(f"Hi, url: [{url}]")
 
-        date = f"{year}-{month}-{day}"
-        print(f"Hi, date: [{date}]")
-
-        #self.agent.open(self.login_url)
-        #self.agent.select_form('LoginForm')
+        #self.agent.open(url)
+        #self.agent.select_form('form_busca_dou')
         #form = self.agent.form
-#
-#        form['username'] = self.username
-#        form['password'] = self.password
-#        self.agent.submit()
+        #form['action'] = 'http://pesquisa.in.gov.br/imprensa/core/jornalList.action'
+        #self.agent.submit()
+
+        # self.agent
+        import pdb;pdb.set_trace()
+        # self.agent
 
         return
 
-    def log_time_entry(self, date):
-        req = self.agent.click_link(text='Time Entry')
-        page = self.agent.open(req)
-
-        self.agent.select_form('ProjectEntryForm')
-        form = self.agent.form
-
-        form.find_control('StartDate').readonly = False
-        # -OR- form.set_all_readonly(False)
-        # allow changing the .value of all controls
-
-        form['hours'] = '8'
-        form['StartDate'] = date.strftime('%m-%d-%Y')
-
-        self.agent.submit()
-
-        return
+#?    def log_time_entry(self, date):
+#?        req = self.agent.click_link(text='Time Entry')
+#?        page = self.agent.open(req)
+#?
+#?        self.agent.select_form('ProjectEntryForm')
+#?        form = self.agent.form
+#?
+#?        form.find_control('StartDate').readonly = False
+#?        # -OR- form.set_all_readonly(False)
+#?        # allow changing the .value of all controls
+#?
+#?        form['hours'] = '8'
+#?        form['StartDate'] = date.strftime('%m-%d-%Y')
+#?
+#?        self.agent.submit()
+#?
+#?        return
 
 
 def lambda_handler(event, context):
     timesheet = DOUGet()
     # today = datetime.date.today()
-    today = datetime.datetime(2019, 11, 22, 13, 0, 0, tzinfo=None)
+    # today = datetime.datetime(2019, 11, 22, 13, 0, 0, tzinfo=None)
+    today = datetime.datetime(2019, 1, 2, 13, 0, 0, tzinfo=None)
 
     timesheet.get_initial_page(today)
     # today = datetime.datetime(2017, 6, 16, 13, 0, 0, tzinfo=None)
