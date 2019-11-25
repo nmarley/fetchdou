@@ -99,32 +99,40 @@ class DOUGet(object):
                 form[key] = [val]
 
         form.action = 'http://pesquisa.in.gov.br/imprensa/core/jornalList.action'
-        # import pdb;pdb.set_trace()
         self.agent.submit()
+
+        import pdb;pdb.set_trace()
+        resp = self.agent.response()
+        data = resp.read()
+        links = self.extract_pdf_download_links(data)
+        print(links)
 
         return
 
-    # r'CTxIn\(COutPoint\(([0-9a-zA-Z]+),\s*(\d+)\),'
-    # re_pdf_download_link = re.compile(r'^http://download.in.gov.br/sgpub/do/secao1/extra/2019/2019_11_21/2019_11_21_ASSINADO_do1_extra_A.pdf?arg1=v5uFuVtjRoHyXTCBrS-ILA&amp;arg2=1574739296
-    def extract_pdf_download_links(self, html):
-        re_pdf_download_link = re.compile(r'^(http://download.in.gov.br/[^'"]*?)')
+    def write_page(self, page):
+        with open('page.html', 'wb') as f:
+            f.write(page)
 
+    def extract_pdf_download_links(self, data):
+        import html
+        links = []
+        re_pdf_download_link = re.compile(r'(http://download.in.gov.br/[^\'"]*)')
 
-# examples:
-# http://download.in.gov.br/sgpub/do/secao1/extra/2019/2019_11_21/2019_11_21_ASSINADO_do1_extra_A.pdf?arg1=v5uFuVtjRoHyXTCBrS-ILA&amp;arg2=1574739296
-# http://download.in.gov.br/sgpub/do/secao1/2019/2019_11_21/2019_11_21_ASSINADO_do1.pdf?arg1=kvb16gCssmwGX0riHXHe9A&amp;arg2=1574739296
+        text = data.decode('utf-8')
+        for m in re_pdf_download_link.finditer(text):
+            # they actually HTML escape the links (what idiotic assholes)
+            links.append(html.unescape(m.group(0)))
+
+        return links
 
 
 def lambda_handler(event, context):
-    timesheet = DOUGet()
+    obj = DOUGet()
     # today = datetime.date.today()
     today = datetime.datetime(2019, 11, 21, 13, 0, 0, tzinfo=None)
     # today = datetime.datetime(2019, 1, 2, 13, 0, 0, tzinfo=None)
 
-    timesheet.get_initial_page(today)
-    # today = datetime.datetime(2017, 6, 16, 13, 0, 0, tzinfo=None)
-    #if today.weekday() <= 4:
-    #    timesheet.log_time_entry(today)
+    obj.get_initial_page(today)
 
     return None
 
