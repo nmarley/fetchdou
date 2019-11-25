@@ -38,23 +38,21 @@ func getFirstPage() ([]byte, error) {
 	return body, nil
 }
 
-
 func getRequestHeaders() map[string]string {
-    headers := make(map[string]string)
+	headers := make(map[string]string)
 
-    headers["accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"
-    headers["accept-encoding"] = "gzip, deflate"
-    headers["accept-language"] = "pt-BR,pt;q=0.9,en-GB;q=0.8,en;q=0.7,en-US;q=0.6"
-    headers["cookie"] = "GUEST_LANGUAGE_ID=pt_BR"
-    headers["dnt"] = "1"
-    headers["host"] = "download.in.gov.br"
-    headers["proxy-connection"] = "keep-alive"
-    headers["referer"] = "http://pesquisa.in.gov.br/imprensa/core/jornalList.action"
-    headers["upgrade-insecure-requests"] = "1"
+	headers["accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"
+	headers["accept-encoding"] = "gzip, deflate"
+	headers["accept-language"] = "pt-BR,pt;q=0.9,en-GB;q=0.8,en;q=0.7,en-US;q=0.6"
+	headers["cookie"] = "GUEST_LANGUAGE_ID=pt_BR"
+	headers["dnt"] = "1"
+	headers["host"] = "download.in.gov.br"
+	headers["proxy-connection"] = "keep-alive"
+	headers["referer"] = "http://pesquisa.in.gov.br/imprensa/core/jornalList.action"
+	headers["upgrade-insecure-requests"] = "1"
 
-    return headers
+	return headers
 }
-
 
 func getPDF(theURL string) error {
 	// parsedURL, err := url.Parse(theURL)
@@ -69,9 +67,9 @@ func getPDF(theURL string) error {
 		return err
 	}
 	req.Header.Set("User-Agent", userAgent)
-    for k, v := range getRequestHeaders() {
-        req.Header.Set(k, v)
-    }
+	for k, v := range getRequestHeaders() {
+		req.Header.Set(k, v)
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
