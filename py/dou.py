@@ -6,6 +6,10 @@ import mechanize
 import http.cookiejar as cookielib
 import datetime
 import json
+import re
+# debugging
+from pprint import pprint
+
 
 class DOUGet(object):
 
@@ -34,54 +38,88 @@ class DOUGet(object):
         year = "%04d" % day.year
         month = "%02d" % day.month
         day = "%02d" % day.day
-        #year = day.year
-        #month = day.month
-        #day = day.day
-
         url = f'http://www.in.gov.br/leiturajornal?data={day}-{month}-{year}#daypicker'
-
         return url
+
+    def get_search_params(self, day):
+        # format dates for this idiotic asinine piece of shit app
+        year = "%04d" % day.year
+        month = "%02d" % day.month
+        day = "%02d" % day.day
+        paramDayMonth = f"{day}/{month}"
+        paramYear = year
+
+        params = {
+            'search-bar': '',
+            'tipo-pesquisa': '0',
+            'sistema-busca': '2',
+            'termo-pesquisado': '0',
+            'jornal': 'do1',
+            't': 'com.liferay.journal.model.JournalArticle',
+            'g': '68942',
+            'edicao.jornal': '1,1000,1010,1020,515,521,522,531,535,536,523,532,540,1040,600,601,602,603,612,613,614,615,701',
+            '__checkbox_edicao.jornal': '1,1000,1010,1020,515,521,522,531,535,536,523,532,540,1040,2,2000,529,525,3,3000,3020,1040,526,530,600,601,602,603,604,605,606,607,608,609,610,611,612,613,614,615,701,702',
+            '__checkbox_edicao.jornal': '1,1000,1010,1020,515,521,522,531,535,536,523,532,540,1040,600,601,602,603,612,613,614,615,701',
+            '__checkbox_edicao.jornal': '2,2000,529,525,604,605,606,607,702',
+            '__checkbox_edicao.jornal': '3,3000,3020,1040,526,530,608,609,610,611',
+            'edicao.txtPesquisa': '',
+            'edicao.jornal_hidden': '1,1000,1010,1020,515,521,522,531,535,536,523,532,540,1040,2,2000,529,525,3,3000,3020,1040,526,530,600,601,602,603,604,605,606,607,608,609,610,611,612,613,614,615,701,702',
+            'edicao.dtInicio': paramDayMonth,
+            'edicao.dtFim': paramDayMonth,
+            'edicao.ano': paramYear,
+        }
+
+        return params
 
     def get_initial_page(self, day):
         url = self.get_dou_url_for_day(day)
-        print(f"Hi, url: [{url}]")
+        self.agent.open(url)
+        self.agent.select_form('form_busca_dou')
+        form = self.agent.form
 
-        #self.agent.open(url)
-        #self.agent.select_form('form_busca_dou')
-        #form = self.agent.form
-        #form['action'] = 'http://pesquisa.in.gov.br/imprensa/core/jornalList.action'
-        #self.agent.submit()
+        # get_search_params
+        params = self.get_search_params(day)
+        for key in params:
+            val = params[key]
+            ctrl = {}
+            try:
+                ctrl = form.find_control(key)
+            except:
+                # who the fuck cares, g-d Python sucks ass
+                form.new_control(type='hidden', name=key, attrs='', ignore_unknown=True)
+                ctrl = form.find_control(key)
+            ctrl.readonly = False
 
-        # self.agent
-        import pdb;pdb.set_trace()
-        # self.agent
+            # check if "listcontrol"... my fucking g-d how much this shit sucks...
+            # the final Go rewrite is gonna be heaven.
+            #if ctrl is a ListControl
+            try:
+                form[key] = val
+            except:
+                form[key] = [val]
+
+        form.action = 'http://pesquisa.in.gov.br/imprensa/core/jornalList.action'
+        # import pdb;pdb.set_trace()
+        self.agent.submit()
 
         return
 
-#?    def log_time_entry(self, date):
-#?        req = self.agent.click_link(text='Time Entry')
-#?        page = self.agent.open(req)
-#?
-#?        self.agent.select_form('ProjectEntryForm')
-#?        form = self.agent.form
-#?
-#?        form.find_control('StartDate').readonly = False
-#?        # -OR- form.set_all_readonly(False)
-#?        # allow changing the .value of all controls
-#?
-#?        form['hours'] = '8'
-#?        form['StartDate'] = date.strftime('%m-%d-%Y')
-#?
-#?        self.agent.submit()
-#?
-#?        return
+    # r'CTxIn\(COutPoint\(([0-9a-zA-Z]+),\s*(\d+)\),'
+    # re_pdf_download_link = re.compile(r'^http://download.in.gov.br/sgpub/do/secao1/extra/2019/2019_11_21/2019_11_21_ASSINADO_do1_extra_A.pdf?arg1=v5uFuVtjRoHyXTCBrS-ILA&amp;arg2=1574739296
+    def extract_pdf_download_links(self, html):
+        re_pdf_download_link = re.compile(r'^(http://download.in.gov.br/[^'"]*?)')
+
+
+# examples:
+# http://download.in.gov.br/sgpub/do/secao1/extra/2019/2019_11_21/2019_11_21_ASSINADO_do1_extra_A.pdf?arg1=v5uFuVtjRoHyXTCBrS-ILA&amp;arg2=1574739296
+# http://download.in.gov.br/sgpub/do/secao1/2019/2019_11_21/2019_11_21_ASSINADO_do1.pdf?arg1=kvb16gCssmwGX0riHXHe9A&amp;arg2=1574739296
 
 
 def lambda_handler(event, context):
     timesheet = DOUGet()
     # today = datetime.date.today()
-    # today = datetime.datetime(2019, 11, 22, 13, 0, 0, tzinfo=None)
-    today = datetime.datetime(2019, 1, 2, 13, 0, 0, tzinfo=None)
+    today = datetime.datetime(2019, 11, 21, 13, 0, 0, tzinfo=None)
+    # today = datetime.datetime(2019, 1, 2, 13, 0, 0, tzinfo=None)
 
     timesheet.get_initial_page(today)
     # today = datetime.datetime(2017, 6, 16, 13, 0, 0, tzinfo=None)
