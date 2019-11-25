@@ -89,6 +89,7 @@ func getPDF(theURL string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	n, err := io.Copy(f, resp.Body)
 	if err != nil {
