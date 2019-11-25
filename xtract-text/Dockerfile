@@ -1,12 +1,5 @@
-FROM ubuntu:18.04
-
-#RUN apt-get update && apt-get -y install ghostscript
-RUN apt-get update && apt-get -y install poppler-utils
+FROM alpine:3.10
+RUN apk add --update --no-cache poppler-utils
 #ENTRYPOINT "/usr/bin/pdftotext"
-
-#ENTRYPOINT "/usr/bin/gs"
-CMD ["/bin/bash"]
-
-# command to extract text from PDF using GhostScript:
-# gs -sDEVICE=txtwrite -o output.txt input.pdf
-#CMD ["-sDEVICE=txtwrite", "-o", "output.txt", "input.pdf"]
+# /usr/bin/pdftotext in.pdf out.txt
+CMD ["/bin/ash"]
