@@ -50,9 +50,9 @@ func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 
 	// Header is map[string][]string
 	for k, v := range resp.Header {
-		fmt.Println("response header [%v]:\n", k)
+		fmt.Printf("response header [%v]:\n", k)
 		for _, val := range v {
-			fmt.Println("\tval: [%v]\n", val)
+			fmt.Printf("\tval: [%v]\n", val)
 		}
 	}
 
