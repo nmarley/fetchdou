@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -40,22 +41,21 @@ func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	defer resp.Body.Close()
 
 	// debugging. Header is map[string][]string
-	for k, v := range resp.Header {
-		fmt.Printf("response header [%v]:\n", k)
-		for _, val := range v {
-			fmt.Printf("\tval: [%v]\n", val)
-		}
-	}
+	//for k, v := range resp.Header {
+	//	fmt.Printf("response header [%v]:\n", k)
+	//	for _, val := range v {
+	//		fmt.Printf("\tval: [%v]\n", val)
+	//	}
+	//}
 
 	var r io.Reader
 	r = resp.Body
 	if resp.Header.Get("content-encoding") == "gzip" {
 		fmt.Println("Gzip detected -- decompressing")
-		r, err := gzip.NewReader(resp.Body)
+		r, err = gzip.NewReader(resp.Body)
 		if err != nil {
 			return links, err
 		}
-		defer r.Close()
 	}
 
 	var buf bytes.Buffer
@@ -129,13 +129,26 @@ func main() {
 	}
 	fmt.Println("links:", links)
 
+	// concurrent download (fetch) of PDFs
+	maxRoutines := 8
+	var wg sync.WaitGroup
+	guard := make(chan struct{}, maxRoutines)
+	defer close(guard)
+
 	for _, link := range links {
-		fn, err := suggestedFilename(link)
-		fmt.Println("suggested filename:", fn)
-		err = downloadPDF(link, fn)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("Downloaded %v to %v\n", link, fn)
+		wg.Add(1)
+		guard <- struct{}{}
+		go func(pdfURL string) {
+			fn, err := suggestedFilename(pdfURL)
+			// fmt.Println("suggested filename:", fn)
+			err = downloadPDF(pdfURL, fn)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v", err)
+				return
+			}
+			fmt.Printf("Downloaded %v to %v\n", pdfURL, fn)
+			wg.Done()
+			<-guard
+		}(link)
 	}
 }
