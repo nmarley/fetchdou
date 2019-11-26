@@ -152,23 +152,23 @@ func main() {
 	s3Region := os.Getenv("S3_REGION")
 	s3Bucket := os.Getenv("S3_BUCKET")
 	if s3Region == "" || s3Bucket == "" {
-		fmt.Fprintf(os.Stderr, "error: S3_REGION or S3_BUCKET not set")
+		fmt.Fprintln(os.Stderr, "error: S3_REGION or S3_BUCKET not set")
 		os.Exit(1)
 	}
 	s3Prefix := fmt.Sprintf("%04d/%02d/%02d", date.Year(), date.Month(), date.Day())
-	log.Printf("s3 region: %v\n", s3Region)
-	log.Printf("s3 bucket: %v\n", s3Bucket)
-	log.Printf("s3 prefix: %v\n", s3Prefix)
+	log.Println("s3 region:", s3Region)
+	log.Println("s3 bucket:", s3Bucket)
+	log.Println("s3 prefix:", s3Prefix)
 
 	// Establish AWS session for s3
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(s3Region),
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error establishing AWS session: %v\n", err)
+		fmt.Fprintln(os.Stderr, "error establishing AWS session:", err)
 		os.Exit(1)
 	}
-	log.Printf("established an AWS session")
+	log.Println("established an AWS session")
 
 	// concurrent download (fetch) of PDFs
 	maxRoutines := 8
@@ -197,7 +197,7 @@ func main() {
 				return nil
 			})
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error: %v", err)
+				fmt.Fprintln(os.Stderr, "error:", err)
 				return
 			}
 			// fmt.Printf("Downloaded %v to %v\n", pdfURL, fn)
