@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,6 +15,14 @@ import (
 
 var userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36"
 var client = &http.Client{}
+
+func decompressPage(data []byte) []byte {
+	var buf bytes.Buffer
+	zr, _ := gzip.NewReader(bytes.NewReader(data))
+	defer zr.Close()
+	io.Copy(&buf, zr)
+	return buf.Bytes()
+}
 
 func requestHeaders() map[string]string {
 	headers := make(map[string]string)
@@ -85,14 +95,16 @@ func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 		return links, err
 	}
 
+	// Gzip?  This page is compressed (GOOD, faster wire xfer)
+	data := decompressPage(body)
 	f, err := os.OpenFile("PDFpage.html", os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return links, err
 	}
-	f.Write(body)
+	f.Write(data)
 
 	// parse body
-	links = parseLinks(body)
+	links = parseLinks(data)
 
 	return links, nil
 }
@@ -156,7 +168,11 @@ func main() {
 	//	panic(err)
 	//}
 
-	date := time.Now()
+	// date := time.Now()
+	date, _ := time.Parse("2006-01-02", "2019-11-25")
+	//fmt.Printf("date: %+v\n", date)
+	//panic("hi")
+
 	params := searchParams(date)
 	fmt.Printf("params: %+v\n", params)
 
