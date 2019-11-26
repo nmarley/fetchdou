@@ -120,8 +120,9 @@ func downloadPDF(theURL, filename string) error {
 }
 
 func main() {
-	date := time.Now()
+	// date := time.Now()
 	// date, _ := time.Parse("2006-01-02", "2019-11-25")
+	date, _ := time.Parse("2006-01-02", "2019-01-14")
 
 	links, err := fetchPDFDownloadLinks(date)
 	if err != nil {
@@ -151,4 +152,6 @@ func main() {
 			<-guard
 		}(link)
 	}
+	wg.Wait()
+	fmt.Printf("All done!")
 }
