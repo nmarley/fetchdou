@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+
 	// "os"
 
 	// "rsc.io/pdf"
-    "github.com/ledongthuc/pdf"
+	"github.com/ledongthuc/pdf"
 )
 
 func main() {
@@ -23,18 +25,18 @@ func main() {
 	//     panic(err)
 	// }
 
-    f, r, err := pdf.Open(fn)
+	f, r, err := pdf.Open(fn)
 	if err != nil {
 		panic(err)
 	}
-    defer f.Close()
+	defer f.Close()
 
 	var buf bytes.Buffer
-    b, err := r.GetPlainText()
-    if err != nil {
-        panic(err)
-    }
-    buf.ReadFrom(b)
+	b, err := r.GetPlainText()
+	if err != nil {
+		panic(err)
+	}
+	buf.ReadFrom(b)
 
 	fmt.Println(buf.String())
 
