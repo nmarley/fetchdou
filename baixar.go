@@ -48,10 +48,13 @@ func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	}
 	defer resp.Body.Close()
 
-	//body, err := ioutil.ReadAll(resp.Body)
-	//if err != nil {
-	//	return links, err
-	//}
+	// Header is map[string][]string
+	for k, v := range resp.Header {
+		fmt.Println("response header [%v]:\n", k)
+		for _, val := range v {
+			fmt.Println("\tval: [%v]\n", val)
+		}
+	}
 
 	// TODO: Check response headers before assuming it's gzipped
 	// Gzip?  This page is compressed (GOOD, faster wire xfer)
