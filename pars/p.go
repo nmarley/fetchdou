@@ -18,7 +18,8 @@ func parseLinks(data []byte) []string {
 }
 
 func main() {
-	fn := "page2.html"
+	// fn := "page2.html"
+	fn := "PDFpage.html"
 	data, err := ioutil.ReadFile(fn)
 	if err != nil {
 		panic(err)
