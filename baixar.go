@@ -48,7 +48,7 @@ func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	}
 	defer resp.Body.Close()
 
-	// Header is map[string][]string
+	// debugging. Header is map[string][]string
 	for k, v := range resp.Header {
 		fmt.Printf("response header [%v]:\n", k)
 		for _, val := range v {
@@ -56,16 +56,19 @@ func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 		}
 	}
 
-	// TODO: Check response headers before assuming it's gzipped
-	// Gzip?  This page is compressed (GOOD, faster wire xfer)
-	zr, err := gzip.NewReader(resp.Body)
-	if err != nil {
-		return links, err
+	var r io.Reader
+	r = resp.Body
+	if resp.Header.Get("content-encoding") == "gzip" {
+		fmt.Println("Gzip detected -- decompressing")
+		r, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return links, err
+		}
+		defer r.Close()
 	}
-	defer zr.Close()
 
 	var buf bytes.Buffer
-	io.Copy(&buf, zr)
+	io.Copy(&buf, r)
 	data := buf.Bytes()
 
 	// for debug purposes ...
