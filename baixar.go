@@ -5,12 +5,16 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 var userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36"
@@ -21,6 +25,8 @@ var client = &http.Client{}
 // from the sacred (piece of shit) download server in Brasília. But only from
 // 12:00 - 23:59, because... servers need to sleep? I don't know, these people
 // are morons.
+//
+// The date value is a time.Time, but only uses the year, month and day.
 func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	links := []string{}
 
@@ -72,8 +78,16 @@ func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	return links, nil
 }
 
+// HandleFunc registers the handler function for the given pattern
+// in the DefaultServeMux.
+// The documentation for ServeMux explains how patterns are matched.
+
+// FetcherFunc is a func which fetches data
+type FetcherFunc func(io.Reader) error
+
 // fetchPDF accepts a URL and filename and downloads the PDF file
-func downloadPDF(theURL, filename string) error {
+// func downloadPDF(theURL, filename string) error
+func fetchPDF(theURL string, fetch FetcherFunc) error {
 	req, err := http.NewRequest("GET", theURL, nil)
 	if err != nil {
 		return err
@@ -103,33 +117,58 @@ func downloadPDF(theURL, filename string) error {
 	// io.Copy(&buf, r)
 	// data := buf.Bytes()
 
-	// io.Reader
-
-	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	n, err := io.Copy(f, r)
+	err = fetch(r)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Wrote %d bytes to %s\n", n, filename)
+	// f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer f.Close()
+	// n, err := io.Copy(f, r)
+	// if err != nil {
+	// 	return err
+	// }
+	// fmt.Printf("Wrote %d bytes to %s\n", n, filename)
+
 	return nil
 }
 
 func main() {
 	// date := time.Now()
 	// date, _ := time.Parse("2006-01-02", "2019-11-25")
-	date, _ := time.Parse("2006-01-02", "2019-01-14")
+	// date, _ := time.Parse("2006-01-02", "2019-01-14")
+	date, _ := time.Parse("2006-01-02", "2019-01-16")
 
 	links, err := fetchPDFDownloadLinks(date)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("links:", links)
+
+	// AWS stuff
+	s3Region := os.Getenv("S3_REGION")
+	s3Bucket := os.Getenv("S3_BUCKET")
+	if s3Region == "" || s3Bucket == "" {
+		fmt.Fprintf(os.Stderr, "error: S3_REGION or S3_BUCKET not set")
+		os.Exit(1)
+	}
+	s3Prefix := fmt.Sprintf("%04d/%02d/%02d", date.Year(), date.Month(), date.Day())
+	log.Printf("s3 region: %v\n", s3Region)
+	log.Printf("s3 bucket: %v\n", s3Bucket)
+	log.Printf("s3 prefix: %v\n", s3Prefix)
+
+	// Establish AWS session for s3
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(s3Region),
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error establishing AWS session: %v\n", err)
+		os.Exit(1)
+	}
+	log.Printf("established an AWS session")
 
 	// concurrent download (fetch) of PDFs
 	maxRoutines := 8
@@ -142,17 +181,30 @@ func main() {
 		guard <- struct{}{}
 		go func(pdfURL string) {
 			fn, err := suggestedFilename(pdfURL)
-			// fmt.Println("suggested filename:", fn)
-			err = downloadPDF(pdfURL, fn)
+			err = fetchPDF(pdfURL, func(r io.Reader) error {
+				var buf bytes.Buffer
+				_, err := io.Copy(&buf, r)
+				if err != nil {
+					return err
+				}
+				r2 := bytes.NewReader(buf.Bytes())
+				s3Key := fmt.Sprintf("%s/%s", s3Prefix, fn)
+				err = S3Put(r2, s3Bucket, s3Key, "public-read", sess)
+				if err != nil {
+					return err
+				}
+				fmt.Printf("Uploaded %v to s3://%v/%v\n", pdfURL, s3Bucket, s3Key)
+				return nil
+			})
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "error: %v", err)
 				return
 			}
-			fmt.Printf("Downloaded %v to %v\n", pdfURL, fn)
+			// fmt.Printf("Downloaded %v to %v\n", pdfURL, fn)
 			wg.Done()
 			<-guard
 		}(link)
 	}
 	wg.Wait()
-	fmt.Printf("All done!")
+	fmt.Println("All done!")
 }
