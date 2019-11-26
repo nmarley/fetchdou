@@ -159,6 +159,12 @@ func main() {
 	date := time.Now()
 	params := searchParams(date)
 	fmt.Printf("params: %+v\n", params)
+
+	links, err := fetchPDFDownloadLinks(date)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("links:", links)
 }
 
 // http://download.in.gov.br/sgpub/do/secao1/2019/2019_11_21/2019_11_21_ASSINADO_do1.pdf?arg1=kvb16gCssmwGX0riHXHe9A&arg2=1574739296
