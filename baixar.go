@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -54,7 +55,7 @@ func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	var r io.Reader
 	r = resp.Body
 	if resp.Header.Get("content-encoding") == "gzip" {
-		fmt.Println("Gzip detected -- decompressing")
+		log.Println("gzip detected, decompressing")
 		r, err = gzip.NewReader(resp.Body)
 		if err != nil {
 			return links, err
@@ -88,6 +89,7 @@ type FetcherFunc func(io.Reader) error
 // fetchPDF accepts a URL and filename and downloads the PDF file
 // func downloadPDF(theURL, filename string) error
 func fetchPDF(theURL string, fetch FetcherFunc) error {
+	log.Print("fetching:", theURL)
 	req, err := http.NewRequest("GET", theURL, nil)
 	if err != nil {
 		return err
@@ -104,7 +106,7 @@ func fetchPDF(theURL string, fetch FetcherFunc) error {
 	var r io.Reader
 	r = resp.Body
 	if resp.Header.Get("content-encoding") == "gzip" {
-		fmt.Println("Gzip detected -- decompressing")
+		log.Print("gzip detected, decompressing")
 		zr, err := gzip.NewReader(resp.Body)
 		if err != nil {
 			return err
@@ -131,7 +133,7 @@ func fetchPDF(theURL string, fetch FetcherFunc) error {
 	// if err != nil {
 	// 	return err
 	// }
-	// fmt.Printf("Wrote %d bytes to %s\n", n, filename)
+	// log.Printf("wrote %d bytes to %s\n", n, filename)
 
 	return nil
 }
@@ -146,14 +148,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("links:", links)
+	log.Println("links:", links)
 
 	// AWS stuff
 	s3Region := os.Getenv("S3_REGION")
 	s3Bucket := os.Getenv("S3_BUCKET")
 	if s3Region == "" || s3Bucket == "" {
-		fmt.Fprintln(os.Stderr, "error: S3_REGION or S3_BUCKET not set")
-		os.Exit(1)
+		log.Fatal("error: S3_REGION or S3_BUCKET not set")
 	}
 	s3Prefix := fmt.Sprintf("%04d/%02d/%02d", date.Year(), date.Month(), date.Day())
 	log.Println("s3 region:", s3Region)
@@ -165,21 +166,23 @@ func main() {
 		Region: aws.String(s3Region),
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error establishing AWS session:", err)
-		os.Exit(1)
+		log.Fatal("error establishing AWS session:", err)
 	}
 	log.Println("established an AWS session")
 
 	// concurrent download (fetch) of PDFs
-	maxRoutines := 8
+	limit := 8
+	maxGoroutines := int(math.Min(float64(limit), float64(len(links))))
+	log.Println("maxGoroutines:", maxGoroutines)
 	var wg sync.WaitGroup
-	guard := make(chan struct{}, maxRoutines)
+	guard := make(chan struct{}, maxGoroutines)
 	defer close(guard)
 
 	for _, link := range links {
 		wg.Add(1)
 		guard <- struct{}{}
 		go func(pdfURL string) {
+			log.Println("goroutine: fetching ", pdfURL)
 			fn, err := suggestedFilename(pdfURL)
 			err = fetchPDF(pdfURL, func(r io.Reader) error {
 				var buf bytes.Buffer
@@ -193,18 +196,19 @@ func main() {
 				if err != nil {
 					return err
 				}
-				fmt.Printf("Uploaded %v to s3://%v/%v\n", pdfURL, s3Bucket, s3Key)
+				log.Printf("uploaded %v to s3://%v/%v\n", fn, s3Bucket, s3Key)
 				return nil
 			})
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "error:", err)
+				// later error (default log package does not have debug levels)
+				log.Println("error:", err)
 				return
 			}
-			// fmt.Printf("Downloaded %v to %v\n", pdfURL, fn)
+			// log.Printf("downloaded %v to %v\n", pdfURL, fn)
 			wg.Done()
 			<-guard
 		}(link)
 	}
 	wg.Wait()
-	fmt.Println("All done!")
+	log.Println("All done!")
 }
