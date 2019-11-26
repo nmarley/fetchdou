@@ -120,25 +120,8 @@ func downloadPDF(theURL, filename string) error {
 }
 
 func main() {
-	// page, err := getFirstPage()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println("page: ", string(page))
-
-	//link := "http://download.in.gov.br/sgpub/do/secao1/2019/2019_11_21/2019_11_21_ASSINADO_do1.pdf?arg1=kvb16gCssmwGX0riHXHe9A&arg2=1574739296"
-	//err := getPDF(link)
-	//if err != nil {
-	//	panic(err)
-	//}
-
-	// date := time.Now()
-	date, _ := time.Parse("2006-01-02", "2019-11-25")
-	//fmt.Printf("date: %+v\n", date)
-	//panic("hi")
-
-	params := searchParams(date)
-	fmt.Printf("params: %+v\n", params)
+	date := time.Now()
+	// date, _ := time.Parse("2006-01-02", "2019-11-25")
 
 	links, err := fetchPDFDownloadLinks(date)
 	if err != nil {
@@ -156,6 +139,3 @@ func main() {
 		fmt.Printf("Downloaded %v to %v\n", link, fn)
 	}
 }
-
-// http://download.in.gov.br/sgpub/do/secao1/2019/2019_11_21/2019_11_21_ASSINADO_do1.pdf?arg1=kvb16gCssmwGX0riHXHe9A&arg2=1574739296
-// http://download.in.gov.br/sgpub/do/secao1/extra/2019/2019_11_21/2019_11_21_ASSINADO_do1_extra_A.pdf?arg1=v5uFuVtjRoHyXTCBrS-ILA&arg2=1574739296
