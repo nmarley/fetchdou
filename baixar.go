@@ -14,33 +14,6 @@ import (
 var userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36"
 var client = &http.Client{}
 
-// http://www.in.gov.br/leiturajornal?data=10-09-2019#daypicker
-func getFirstPage(date time.Time) ([]byte, error) {
-	var data []byte
-	// urlPattern
-	url := "http://www.in.gov.br/leiturajornal?data=25-11-2019#daypicker"
-
-	// year := date.Year()
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return data, err
-	}
-
-	req.Header.Set("User-Agent", userAgent)
-	resp, err := client.Do(req)
-	if err != nil {
-		return data, err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return data, err
-	}
-
-	return body, nil
-}
-
 func requestHeaders() map[string]string {
 	headers := make(map[string]string)
 
@@ -84,7 +57,7 @@ func searchParams(date time.Time) map[string]string {
 }
 
 func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
-    links := []string{}
+	links := []string{}
 
 	params := searchParams(date)
 	postData := url.Values{}
@@ -100,9 +73,7 @@ func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	for k, v := range requestHeaders() {
 		req.Header.Set(k, v)
 	}
-	// headers["host"] = "download.in.gov.br"
 
-	// application/x-www-form-urlencoded
 	resp, err := client.Do(req)
 	if err != nil {
 		return links, err
@@ -114,9 +85,16 @@ func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 		return links, err
 	}
 
-    // parse body
+	f, err := os.OpenFile("PDFpage.html", os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return links, err
+	}
+	f.Write(body)
 
-    return links
+	// parse body
+	links = parseLinks(body)
+
+	return links, nil
 }
 
 func getPDF(theURL string) error {
