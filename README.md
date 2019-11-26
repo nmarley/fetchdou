@@ -1,5 +1,7 @@
 # go-baixar-dou
 
+Download the DOU - Diário Oficial da União
+
 A web scraper written in Go which downloads the PDF format copy of the [Diário Oficial da União][pt-wikipedia-url] - the official newspaper of the Brazilian government. Laws and governmental decrees are published here.
 
 The idea is to download a full PDF copy of the DOU every day when published and store it in S3 (public for all to access) with a reliable URL schema so that anyone can download this whenever without having to use the bullshit website which sucks ass or rely on the Brazilian government to store historical copies of it (LOL).
