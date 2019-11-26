@@ -15,15 +15,6 @@ import (
 var userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36"
 var client = &http.Client{}
 
-// decompressPage
-func decompressPage(data []byte) []byte {
-	var buf bytes.Buffer
-	zr, _ := gzip.NewReader(bytes.NewReader(data))
-	defer zr.Close()
-	io.Copy(&buf, zr)
-	return buf.Bytes()
-}
-
 func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	links := []string{}
 
@@ -98,11 +89,20 @@ func downloadPDF(theURL, filename string) error {
 	}
 	defer resp.Body.Close()
 
-	// write to file (or s3, or whatever...)
-	// body, err := ioutil.ReadAll(resp.Body)
-	// if err != nil {
-	// 	return err
-	// }
+	var r io.Reader
+	r = resp.Body
+	if resp.Header.Get("content-encoding") == "gzip" {
+		fmt.Println("Gzip detected -- decompressing")
+		r, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return err
+		}
+		defer r.Close()
+	}
+
+	// var buf bytes.Buffer
+	// io.Copy(&buf, r)
+	// data := buf.Bytes()
 
 	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
@@ -110,7 +110,7 @@ func downloadPDF(theURL, filename string) error {
 	}
 	defer f.Close()
 
-	n, err := io.Copy(f, resp.Body)
+	n, err := io.Copy(f, r)
 	if err != nil {
 		return err
 	}
