@@ -8,9 +8,7 @@ import (
 	"log"
 	"math"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -20,64 +18,6 @@ import (
 
 var userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36"
 var client = &http.Client{}
-
-// fetchPDFDownloadLinks will knock on the sacred door of bullshit Java servers
-// to retrieve the PDF links with special parameters to allow for PDF downloads
-// from the sacred (piece of shit) download server in Brasília. But only from
-// 12:00 - 23:59, because... servers need to sleep? I don't know, these people
-// are morons.
-//
-// The date value is a time.Time, but only uses the year, month and day.
-func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
-	links := []string{}
-
-	params := searchParams(date)
-	postData := url.Values{}
-	for k, v := range params {
-		postData.Set(k, v)
-	}
-	postURL := "http://pesquisa.in.gov.br/imprensa/core/jornalList.action"
-	req, err := http.NewRequest("POST", postURL, strings.NewReader(postData.Encode()))
-	if err != nil {
-		return links, err
-	}
-	req.Header.Set("content-type", "application/x-www-form-urlencoded")
-	for k, v := range requestHeaders() {
-		req.Header.Set(k, v)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return links, err
-	}
-	defer resp.Body.Close()
-
-	var r io.Reader
-	r = resp.Body
-	if resp.Header.Get("content-encoding") == "gzip" {
-		log.Println("gzip detected, decompressing")
-		r, err = gzip.NewReader(resp.Body)
-		if err != nil {
-			return links, err
-		}
-	}
-
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	data := buf.Bytes()
-
-	// for debug purposes ...
-	// f, err := os.OpenFile("PDFpage.html", os.O_RDWR|os.O_CREATE, 0644)
-	// if err != nil {
-	// 	return links, err
-	// }
-	// f.Write(data)
-
-	// parse body
-	links = parseLinks(data)
-
-	return links, nil
-}
 
 // HandleFunc registers the handler function for the given pattern
 // in the DefaultServeMux.

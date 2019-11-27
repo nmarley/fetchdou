@@ -1,9 +1,38 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
+	"html"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+	"regexp"
+	"strings"
 	"time"
 )
+
+var rePDFDownloadLink = regexp.MustCompile(`(http://download.in.gov.br/[^\'"]*)`)
+
+//var rePDFDownloadLink regexp.Regexp
+//func init() {
+//    rePDFDownloadLink = regexp.MustCompile(`(http://download.in.gov.br/[^\'"]*)`)
+//}
+
+// DOUReport ...
+type DOUReport struct {
+	Date      time.Time
+	UserAgent string
+}
+
+// NewDOUReport ...
+//func NewDOUReport(date time.Time) DOUReport {
+//    return DouReport{
+//        Date: date,
+//    }
+//}
 
 func requestHeaders() map[string]string {
 	headers := make(map[string]string)
@@ -17,7 +46,7 @@ func requestHeaders() map[string]string {
 	headers["upgrade-insecure-requests"] = "1"
 	headers["user-agent"] = userAgent
 
-	// TODO: address this later
+	// unchecked, leave off for now
 	// headers["host"] = "download.in.gov.br"
 	// headers["referer"] = "http://pesquisa.in.gov.br/imprensa/core/jornalList.action"
 
@@ -47,4 +76,67 @@ func searchParams(date time.Time) map[string]string {
 	params["edicao.ano"] = fmt.Sprintf("%04d", date.Year())
 
 	return params
+}
+
+// fetchPDFDownloadLinks will knock on the sacred door of bullshit Java servers
+// to retrieve the PDF links with special parameters to allow for PDF downloads
+// from the sacred (piece of shit) download server in Brasília. But only from
+// 12:00 - 23:59, because... servers need to sleep? I don't know, these people
+// are morons.
+//
+// The date value is a time.Time, but only uses the year, month and day.
+func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
+	links := []string{}
+
+	params := searchParams(date)
+	postData := url.Values{}
+	for k, v := range params {
+		postData.Set(k, v)
+	}
+	postURL := "http://pesquisa.in.gov.br/imprensa/core/jornalList.action"
+	req, err := http.NewRequest("POST", postURL, strings.NewReader(postData.Encode()))
+	if err != nil {
+		return links, err
+	}
+	req.Header.Set("content-type", "application/x-www-form-urlencoded")
+	for k, v := range requestHeaders() {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return links, err
+	}
+	defer resp.Body.Close()
+
+	var r io.Reader
+	r = resp.Body
+	if resp.Header.Get("content-encoding") == "gzip" {
+		log.Println("gzip detected, decompressing")
+		zr, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return links, err
+		}
+		defer zr.Close()
+		r = zr
+	}
+
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+	data := buf.Bytes()
+
+	// extract links from body
+	links = parseLinks(data)
+
+	return links, nil
+}
+
+// parseLinks extracts the PDF download links from a given HTML body
+func parseLinks(data []byte) []string {
+	preLinks := rePDFDownloadLink.FindAllString(string(data), -1)
+	links := make([]string, len(preLinks))
+	for i, url := range preLinks {
+		links[i] = html.UnescapeString(url)
+	}
+	return links
 }
