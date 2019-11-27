@@ -184,6 +184,10 @@ func main() {
 		go func(pdfURL string) {
 			log.Println("goroutine: fetching ", pdfURL)
 			fn, err := suggestedFilename(pdfURL)
+			if err != nil {
+				log.Println("goroutine: err ", err)
+				return
+			}
 			err = fetchPDF(pdfURL, func(r io.Reader) error {
 				var buf bytes.Buffer
 				_, err := io.Copy(&buf, r)
