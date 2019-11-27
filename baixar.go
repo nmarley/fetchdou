@@ -89,7 +89,7 @@ type FetcherFunc func(io.Reader) error
 // fetchPDF accepts a URL and filename and downloads the PDF file
 // func downloadPDF(theURL, filename string) error
 func fetchPDF(theURL string, fetch FetcherFunc) error {
-	log.Print("fetching:", theURL)
+	log.Print("fetching: ", theURL)
 	req, err := http.NewRequest("GET", theURL, nil)
 	if err != nil {
 		return err
@@ -142,7 +142,7 @@ func main() {
 	// date := time.Now()
 	// date, _ := time.Parse("2006-01-02", "2019-11-25")
 	// date, _ := time.Parse("2006-01-02", "2019-01-14")
-	date, _ := time.Parse("2006-01-02", "2019-01-16")
+	date, _ := time.Parse("2006-01-02", "2019-01-18")
 
 	links, err := fetchPDFDownloadLinks(date)
 	if err != nil {
