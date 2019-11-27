@@ -16,24 +16,6 @@ import (
 
 var rePDFDownloadLink = regexp.MustCompile(`(http://download.in.gov.br/[^\'"]*)`)
 
-//var rePDFDownloadLink regexp.Regexp
-//func init() {
-//    rePDFDownloadLink = regexp.MustCompile(`(http://download.in.gov.br/[^\'"]*)`)
-//}
-
-// DOUReport ...
-type DOUReport struct {
-	Date      time.Time
-	UserAgent string
-}
-
-// NewDOUReport ...
-//func NewDOUReport(date time.Time) DOUReport {
-//    return DouReport{
-//        Date: date,
-//    }
-//}
-
 func requestHeaders() map[string]string {
 	headers := make(map[string]string)
 
@@ -44,6 +26,7 @@ func requestHeaders() map[string]string {
 	headers["dnt"] = "1"
 	headers["proxy-connection"] = "keep-alive"
 	headers["upgrade-insecure-requests"] = "1"
+	// TODO: this
 	headers["user-agent"] = userAgent
 
 	// unchecked, leave off for now
@@ -78,14 +61,14 @@ func searchParams(date time.Time) map[string]string {
 	return params
 }
 
-// fetchPDFDownloadLinks will knock on the sacred door of bullshit Java servers
+// FetchPDFDownloadLinks will knock on the sacred door of bullshit Java servers
 // to retrieve the PDF links with special parameters to allow for PDF downloads
 // from the sacred (piece of shit) download server in Brasília. But only from
 // 12:00 - 23:59, because... servers need to sleep? I don't know, these people
 // are morons.
 //
 // The date value is a time.Time, but only uses the year, month and day.
-func fetchPDFDownloadLinks(date time.Time) ([]string, error) {
+func FetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	links := []string{}
 
 	params := searchParams(date)

@@ -84,7 +84,7 @@ func main() {
 	// date, _ := time.Parse("2006-01-02", "2019-01-14")
 	date, _ := time.Parse("2006-01-02", "2019-01-18")
 
-	links, err := fetchPDFDownloadLinks(date)
+	links, err := FetchPDFDownloadLinks(date)
 	if err != nil {
 		panic(err)
 	}
