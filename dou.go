@@ -36,6 +36,7 @@ func NewDOUFetcher(userAgent *string) *DOUFetcher {
 	}
 }
 
+// requestHeaders returns a map of headers needed to request the page.
 func (f *DOUFetcher) requestHeaders() map[string]string {
 	headers := make(map[string]string)
 
@@ -55,6 +56,7 @@ func (f *DOUFetcher) requestHeaders() map[string]string {
 	return headers
 }
 
+// searchParams returns a map of POST params needed to request the search page.
 func (f *DOUFetcher) searchParams(date time.Time) map[string]string {
 	strDDMM := fmt.Sprintf("%02d/%02d", date.Day(), date.Month())
 

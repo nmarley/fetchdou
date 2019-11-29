@@ -60,8 +60,8 @@ func main() {
 	defer close(guard)
 
 	for _, link := range links {
-		wg.Add(1)
 		guard <- struct{}{}
+		wg.Add(1)
 		go func(pdfURL string) {
 			log.Println("goroutine: fetching ", pdfURL)
 			fn, err := suggestedFilename(pdfURL)
@@ -69,12 +69,15 @@ func main() {
 				log.Println("goroutine err: ", err)
 				return
 			}
+			log.Printf("goroutine %s, fn: %s\n", pdfURL, fn)
 			data, err := dou.FetchPDF(pdfURL)
 			if err != nil {
 				log.Println("goroutine err: ", err)
 				return
 			}
+			log.Printf("goroutine %s, fetched PDF\n", pdfURL)
 			s3Key := fmt.Sprintf("%s/%s", s3Prefix, fn)
+			log.Printf("goroutine %s, s3Key: %s\n", pdfURL, s3Key)
 			err = S3Put(bytes.NewReader(data), s3Bucket, s3Key, "public-read", sess)
 			if err != nil {
 				log.Println("goroutine err: ", err)
@@ -84,7 +87,9 @@ func main() {
 			wg.Done()
 			<-guard
 		}(link)
+		log.Println("leaving 'for' iteration:", link)
 	}
+	log.Println("out of for loop")
 	wg.Wait()
 	log.Println("All done!")
 }
