@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"math"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -21,7 +19,7 @@ var client = &http.Client{}
 
 func main() {
 	date := time.Now()
-	// date, _ := time.Parse("2006-01-02", "2019-01-18")
+	// date, _ := time.Parse("2006-01-02", "2019-11-28")
 
 	dou := NewDOUFetcher(&userAgent)
 
@@ -51,46 +49,32 @@ func main() {
 	}
 	log.Println("links:", links)
 
-	// concurrent download (fetch) of PDFs
-	limit := 8
-	maxGoroutines := int(math.Min(float64(limit), float64(len(links))))
-	log.Println("maxGoroutines:", maxGoroutines)
-	var wg sync.WaitGroup
-	guard := make(chan struct{}, maxGoroutines)
-	defer close(guard)
+	// Note: I removed concurrency from the downloads as I think the server in
+	// Brasilia might be rate limiting them.
 
-	for _, link := range links {
-		guard <- struct{}{}
-		wg.Add(1)
-		go func(pdfURL string) {
-			log.Println("goroutine: fetching ", pdfURL)
-			fn, err := suggestedFilename(pdfURL)
-			if err != nil {
-				log.Println("goroutine err: ", err)
-				return
-			}
-			log.Printf("goroutine %s, fn: %s\n", pdfURL, fn)
-			data, err := dou.FetchPDF(pdfURL)
-			if err != nil {
-				log.Println("goroutine err: ", err)
-				return
-			}
-			log.Printf("goroutine %s, fetched PDF\n", pdfURL)
-			s3Key := fmt.Sprintf("%s/%s", s3Prefix, fn)
-			log.Printf("goroutine %s, s3Key: %s\n", pdfURL, s3Key)
-			err = S3Put(bytes.NewReader(data), s3Bucket, s3Key, "public-read", sess)
-			if err != nil {
-				log.Println("goroutine err: ", err)
-				return
-			}
-			log.Printf("uploaded %v to s3://%v/%v\n", fn, s3Bucket, s3Key)
-			wg.Done()
-			<-guard
-		}(link)
-		log.Println("leaving 'for' iteration:", link)
+	for _, pdfURL := range links {
+		log.Println("fetching: ", pdfURL)
+		fn, err := suggestedFilename(pdfURL)
+		if err != nil {
+			log.Println("err: ", err)
+			return
+		}
+		log.Println("fn:", fn)
+		data, err := dou.FetchPDF(pdfURL)
+		if err != nil {
+			log.Println("err: ", err)
+			return
+		}
+		log.Println("fetched PDF")
+		s3Key := fmt.Sprintf("%s/%s", s3Prefix, fn)
+		log.Println("s3Key:", s3Key)
+		err = S3Put(bytes.NewReader(data), s3Bucket, s3Key, "public-read", sess)
+		if err != nil {
+			log.Println("err: ", err)
+			return
+		}
+		log.Printf("uploaded %v to s3://%v/%v\n", fn, s3Bucket, s3Key)
 	}
-	log.Println("out of for loop")
-	wg.Wait()
 	log.Println("All done!")
 }
 
