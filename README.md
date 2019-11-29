@@ -8,6 +8,40 @@ The idea is to download a full PDF copy of the DOU every day when published and 
 
 Ideally I will also include a full-text version which can scrape from the PDF version and enable some kinda of full-text copy (.txt) or full-text search so that anyone can search, again without having to use the bullshit Brazilian govt website which sucks ass.
 
+
+Notes on sls app:
+
+// 2018
+// 2019
+//   01
+//   11
+//     21
+// 2020
+//   01
+//     01
+// sha256sums of each PDF
+// index.html of the whole thing
+// /sgpub/do/secao1/2019/2019_11_21/2019_11_21_ASSINADO_do1.pdf
+
+// Note: All this to be done in SLS.
+//
+// Code for parsing the .gov.br code to get PDF links could be in another Go
+// package (which also has a command-line tool for downloading for a given
+// day).
+//
+// Needs to have CloudFront simply for the caching if nothing else.
+//
+// Let's do a s3 structure of YYYY/MM/DD/FILENAME.pdf
+//
+// W/every file laid down, do a scan of the "directory" and create an
+// index.html
+//   (This will be a Lambda triggered by the s3 put)
+//
+// One option is to use DynamoDB for a metadata store. Can keep sha256sums of
+// each PDF and also assist in the index.html for each "dir".
+
+
+
 ## Table of Contents
 - [Install](#install)
 - [Usage](#usage)
