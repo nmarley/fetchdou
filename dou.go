@@ -16,7 +16,7 @@ import (
 
 var rePDFDownloadLink = regexp.MustCompile(`(http://download.in.gov.br/[^\'"]*)`)
 
-func requestHeaders() map[string]string {
+func requestHeaders(userAgent string) map[string]string {
 	headers := make(map[string]string)
 
 	headers["accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"
@@ -26,7 +26,6 @@ func requestHeaders() map[string]string {
 	headers["dnt"] = "1"
 	headers["proxy-connection"] = "keep-alive"
 	headers["upgrade-insecure-requests"] = "1"
-	// TODO: this
 	headers["user-agent"] = userAgent
 
 	// unchecked, leave off for now
@@ -61,15 +60,21 @@ func searchParams(date time.Time) map[string]string {
 	return params
 }
 
-// FetchPDFDownloadLinks will knock on the sacred door of bullshit Java servers
-// to retrieve the PDF links with special parameters to allow for PDF downloads
-// from the sacred (piece of shit) download server in Brasília. But only from
-// 12:00 - 23:59, because... servers need to sleep? I don't know, these people
-// are morons.
+// FetchPDFDownloadLinks returns a list of links to download the DOU in PDF
+// format. The links have certain parameters which must remain intact. If the
+// request is not made within the window of 12:00 - 23:59 M-F, the server will
+// not allow the downloads and instead return an empty list.
 //
-// The date value is a time.Time, but only uses the year, month and day.
-func FetchPDFDownloadLinks(date time.Time) ([]string, error) {
+// The date argument is a time.Time, but only uses the year, month and day. An
+// optional userAgent string can be passed in (recommended).
+func FetchPDFDownloadLinks(date time.Time, userAgent *string) ([]string, error) {
 	links := []string{}
+
+	// hard-code a random common user-agent string in case user doesn't pass one
+	ua := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
+	if userAgent != nil {
+		ua = *userAgent
+	}
 
 	params := searchParams(date)
 	postData := url.Values{}
@@ -82,7 +87,7 @@ func FetchPDFDownloadLinks(date time.Time) ([]string, error) {
 		return links, err
 	}
 	req.Header.Set("content-type", "application/x-www-form-urlencoded")
-	for k, v := range requestHeaders() {
+	for k, v := range requestHeaders(ua) {
 		req.Header.Set(k, v)
 	}
 

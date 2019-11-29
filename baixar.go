@@ -19,10 +19,6 @@ import (
 var userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36"
 var client = &http.Client{}
 
-// HandleFunc registers the handler function for the given pattern
-// in the DefaultServeMux.
-// The documentation for ServeMux explains how patterns are matched.
-
 // FetcherFunc is a func which fetches data
 type FetcherFunc func(io.Reader) error
 
@@ -63,30 +59,16 @@ func fetchPDF(theURL string, fetch FetcherFunc) error {
 	if err != nil {
 		return err
 	}
-
-	// f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
-	// if err != nil {
-	// 	return err
-	// }
-	// defer f.Close()
-	// n, err := io.Copy(f, r)
-	// if err != nil {
-	// 	return err
-	// }
-	// log.Printf("wrote %d bytes to %s\n", n, filename)
-
 	return nil
 }
 
 func main() {
 	// date := time.Now()
-	// date, _ := time.Parse("2006-01-02", "2019-11-25")
-	// date, _ := time.Parse("2006-01-02", "2019-01-14")
 	date, _ := time.Parse("2006-01-02", "2019-01-18")
 
-	links, err := FetchPDFDownloadLinks(date)
+	links, err := FetchPDFDownloadLinks(date, &userAgent)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	log.Println("links:", links)
 
