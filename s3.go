@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "bytes"
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"

@@ -14,9 +14,29 @@ import (
 	"time"
 )
 
+// rePDFDownloadLink is the regular expression for parsing out download links
+// from the search page.
 var rePDFDownloadLink = regexp.MustCompile(`(http://download.in.gov.br/[^\'"]*)`)
 
-func requestHeaders(userAgent string) map[string]string {
+// DOUFetcher is an object used for fetching the DOU in PDF format.
+type DOUFetcher struct {
+	userAgent string
+}
+
+// NewDOUFetcher constructs a new DOUFetcher object with a userAgent string.
+func NewDOUFetcher(userAgent *string) *DOUFetcher {
+	// hard-code a random common user-agent string in case user doesn't pass one
+	ua := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
+	if userAgent != nil {
+		ua = *userAgent
+	}
+
+	return &DOUFetcher{
+		userAgent: ua,
+	}
+}
+
+func (f *DOUFetcher) requestHeaders() map[string]string {
 	headers := make(map[string]string)
 
 	headers["accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"
@@ -26,7 +46,7 @@ func requestHeaders(userAgent string) map[string]string {
 	headers["dnt"] = "1"
 	headers["proxy-connection"] = "keep-alive"
 	headers["upgrade-insecure-requests"] = "1"
-	headers["user-agent"] = userAgent
+	headers["user-agent"] = f.userAgent
 
 	// unchecked, leave off for now
 	// headers["host"] = "download.in.gov.br"
@@ -35,7 +55,7 @@ func requestHeaders(userAgent string) map[string]string {
 	return headers
 }
 
-func searchParams(date time.Time) map[string]string {
+func (f *DOUFetcher) searchParams(date time.Time) map[string]string {
 	strDDMM := fmt.Sprintf("%02d/%02d", date.Day(), date.Month())
 
 	params := make(map[string]string)
@@ -65,18 +85,11 @@ func searchParams(date time.Time) map[string]string {
 // request is not made within the window of 12:00 - 23:59 M-F, the server will
 // not allow the downloads and instead return an empty list.
 //
-// The date argument is a time.Time, but only uses the year, month and day. An
-// optional userAgent string can be passed in (recommended).
-func FetchPDFDownloadLinks(date time.Time, userAgent *string) ([]string, error) {
+// The date argument is a time.Time, but only uses the year, month and day.
+func (f *DOUFetcher) FetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	links := []string{}
 
-	// hard-code a random common user-agent string in case user doesn't pass one
-	ua := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
-	if userAgent != nil {
-		ua = *userAgent
-	}
-
-	params := searchParams(date)
+	params := f.searchParams(date)
 	postData := url.Values{}
 	for k, v := range params {
 		postData.Set(k, v)
@@ -87,7 +100,7 @@ func FetchPDFDownloadLinks(date time.Time, userAgent *string) ([]string, error) 
 		return links, err
 	}
 	req.Header.Set("content-type", "application/x-www-form-urlencoded")
-	for k, v := range requestHeaders(ua) {
+	for k, v := range f.requestHeaders() {
 		req.Header.Set(k, v)
 	}
 
@@ -114,17 +127,53 @@ func FetchPDFDownloadLinks(date time.Time, userAgent *string) ([]string, error) 
 	data := buf.Bytes()
 
 	// extract links from body
-	links = parseLinks(data)
+	links = f.parseLinks(data)
 
 	return links, nil
 }
 
-// parseLinks extracts the PDF download links from a given HTML body
-func parseLinks(data []byte) []string {
+// parseLinks extracts the PDF download links from the HTML search results.
+func (f *DOUFetcher) parseLinks(data []byte) []string {
 	preLinks := rePDFDownloadLink.FindAllString(string(data), -1)
 	links := make([]string, len(preLinks))
 	for i, url := range preLinks {
 		links[i] = html.UnescapeString(url)
 	}
 	return links
+}
+
+// FetchPDF accepts a PDF URL as emitted by FetchPDFDownloadLinks and downloads
+// and returns the raw bytes.
+func (f *DOUFetcher) FetchPDF(url string) ([]byte, error) {
+	// log.Print("fetching: ", url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range f.requestHeaders() {
+		req.Header.Set(k, v)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var r io.Reader
+	r = resp.Body
+	if resp.Header.Get("content-encoding") == "gzip" {
+		// log.Print("gzip detected, decompressing")
+		zr, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		defer zr.Close()
+		r = zr
+	}
+
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+	data := buf.Bytes()
+
+	return data, nil
 }
