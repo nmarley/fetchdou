@@ -1,6 +1,6 @@
-# go-baixar-dou
+# fetchdou
 
-Download the DOU - Diário Oficial da União
+> A package to help automated download the Brazilian government newspaper, Diário Oficial da União (DOU)
 
 A web scraper written in Go which downloads the PDF format copy of the [Diário Oficial da União][pt-wikipedia-url] - the official newspaper of the Brazilian government. Laws and governmental decrees are published here.
 
