@@ -20,12 +20,10 @@ goimports:  ## Run goimports to format code
 	goimports -w .
 
 lint:  ## Lint all go code in project
-	#golint ./...
-	golint *go
+	golint ./...
 
 vet:  ## Go vet all project code
-	#go vet ./...
-	go vet *go
+	go vet ./...
 
 build:  ## Go build
 	go build -o bin/fetch-dou cmd/fetch-dou/*go
