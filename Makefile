@@ -1,20 +1,8 @@
-# System setup
 SHELL = bash
 
-COVERAGE_FILE ?= coverage.txt
+.PHONY: default goimports lint vet help clean build
 
-.PHONY: default test cover goimports lint vet help clean build
-
-default:  goimports lint vet build ## Run default target : all lints + test
-
-test:  ## Run a basic test suite
-	go test
-
-cover:  ## Run tests and generate test coverage file, output coverage results and HTML coverage file.
-	go test -coverprofile $(COVERAGE_FILE)
-	go tool cover -func=$(COVERAGE_FILE)
-	go tool cover -html=$(COVERAGE_FILE)
-	rm -f $(COVERAGE_FILE)
+default:  goimports lint vet build ## Run default target : fmt + lints + build
 
 goimports:  ## Run goimports to format code
 	goimports -w .
