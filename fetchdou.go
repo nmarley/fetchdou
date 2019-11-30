@@ -114,7 +114,7 @@ func (f *DOUFetcher) FetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	}
 	defer resp.Body.Close()
 
-	var r io.Reader
+	var r io.ReadCloser
 	r = resp.Body
 	if resp.Header.Get("content-encoding") == "gzip" {
 		log.Println("gzip detected, decompressing")
@@ -148,7 +148,7 @@ func parseLinks(data []byte) []string {
 
 // FetchPDF accepts a PDF URL as emitted by FetchPDFDownloadLinks and downloads
 // and returns the raw bytes.
-func (f *DOUFetcher) FetchPDF(url string) (io.Reader, error) {
+func (f *DOUFetcher) FetchPDF(url string) (io.ReadCloser, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -160,9 +160,9 @@ func (f *DOUFetcher) FetchPDF(url string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	// defer resp.Body.Close()
 
-	var r io.Reader
+	var r io.ReadCloser
 	r = resp.Body
 	if resp.Header.Get("content-encoding") == "gzip" {
 		r, _ = gzip.NewReader(resp.Body)

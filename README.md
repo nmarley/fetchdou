@@ -51,9 +51,9 @@ Notes on sls app:
 ## Install
 
 ```sh
-go get -u github.com/nmarley/go-baixar-dou
+go get -u github.com/nmarley/fetchdou
 
-go install github.com/nmarley/go-baixar-dou/cmd/baixadou
+go install github.com/nmarley/fetchdou/cmd/fetchdou
 ```
 
 ## Usage
@@ -61,12 +61,12 @@ go install github.com/nmarley/go-baixar-dou/cmd/baixadou
 Example to download DOU from date of 2019-11-22:
 
 ```sh
-baixadou 2019-11-22
+fetchdou 2019-11-22
 ```
 
 ## Contributing
 
-Feel free to dive in! [Open an issue](https://github.com/nmarley/go-baixar-dou/issues/new) or submit PRs.
+Feel free to dive in! [Open an issue](https://github.com/nmarley/fetchdou/issues/new) or submit PRs.
 
 ## License
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -16,36 +17,37 @@ var userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537
 var client = &http.Client{}
 
 func main() {
+	usage := fmt.Sprintf("usage: %s <YYYY-MM-DD>", os.Args[0])
 	if len(os.Args) < 2 {
-		log.Fatalf("usage: %s <YYYY-MM-DD>", os.Args[0])
+		fmt.Fprintln(os.Stderr, usage)
+		os.Exit(1)
 	}
 	strDate := os.Args[1]
 	t, err := time.Parse("2006-01-02", strDate)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-
-	log.Fatal("see-ya")
 
 	golden := dou.NewDOUFetcher(&userAgent)
-
 	links, err := golden.FetchPDFDownloadLinks(t)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-	log.Println("links:", links)
+	fmt.Printf("Got %d links for date %v\n", len(links), strDate)
 
 	// Note: I removed concurrency from the downloads as I think the server in
 	// Brasília might be rate limiting them.
 
 	for _, pdfURL := range links {
-		log.Println("fetching: ", pdfURL)
+		// log.Println("fetching: ", pdfURL)
 		fn, err := suggestedFilename(pdfURL)
 		if err != nil {
-			log.Print(err)
+			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		log.Print("fn:", fn)
+		// log.Print("fn:", fn)
 
 		r, err := golden.FetchPDF(pdfURL)
 		if err != nil {
@@ -64,9 +66,10 @@ func main() {
 			log.Print(err)
 			return
 		}
+		r.Close()
 
 		log.Printf("Wrote %d bytes to %v\n", n, fn)
-		log.Println("Fetched PDF to %v", fn)
+		log.Println("Fetched PDF to ", fn)
 	}
 	log.Println("All done!")
 }
