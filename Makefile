@@ -22,4 +22,3 @@ help:  ## Show This Help
 clean:  ## Clean up transient (generated) files
 	go clean
 	rm -f bin/*
-	rm -f $(COVERAGE_FILE)
