@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -35,43 +34,40 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	fmt.Printf("Got %d links for date %v\n", len(links), strDate)
+	fmt.Printf("Found %d PDFs for date %v\n", len(links), strDate)
 
 	// Note: I removed concurrency from the downloads as I think the server in
 	// Brasília might be rate limiting them.
 
 	for _, pdfURL := range links {
-		// log.Println("fetching: ", pdfURL)
 		fn, err := suggestedFilename(pdfURL)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		// log.Print("fn:", fn)
+		fmt.Println("Fetching ", fn)
 
 		r, err := golden.FetchPDF(pdfURL)
 		if err != nil {
-			log.Print(err)
+			fmt.Print(err)
 			return
 		}
 
 		f, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE, 0644)
 		if err != nil {
-			log.Print(err)
+			fmt.Print(err)
 			return
 		}
 
 		n, err := io.Copy(f, r)
 		if err != nil {
-			log.Print(err)
+			fmt.Print(err)
 			return
 		}
 		r.Close()
 
-		log.Printf("Wrote %d bytes to %v\n", n, fn)
-		log.Println("Fetched PDF to ", fn)
+		fmt.Printf("Wrote %d bytes to %v\n", n, fn)
 	}
-	log.Println("All done!")
 }
 
 func suggestedFilename(pdfURL string) (string, error) {
