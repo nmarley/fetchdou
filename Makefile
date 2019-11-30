@@ -13,7 +13,7 @@ lint:  ## Lint all go code in project
 vet:  ## Go vet all project code
 	go vet ./...
 
-build:  ## Go build
+build: clean ## Go build
 	go build -o bin/fetchdou cmd/fetchdou/*go
 
 help:  ## Show This Help
