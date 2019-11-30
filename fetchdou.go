@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -27,7 +26,7 @@ type DOUFetcher struct {
 
 // NewDOUFetcher constructs a new DOUFetcher object with a userAgent string.
 func NewDOUFetcher(userAgent *string) *DOUFetcher {
-	// hard-code a random common user-agent string in case user doesn't pass one
+	// Use a common user-agent string in case caller doesn't pass one.
 	ua := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 	if userAgent != nil {
 		ua = *userAgent
@@ -117,7 +116,6 @@ func (f *DOUFetcher) FetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	var r io.ReadCloser
 	r = resp.Body
 	if resp.Header.Get("content-encoding") == "gzip" {
-		log.Println("gzip detected, decompressing")
 		zr, err := gzip.NewReader(resp.Body)
 		if err != nil {
 			return links, err
@@ -148,6 +146,8 @@ func parseLinks(data []byte) []string {
 
 // FetchPDF accepts a PDF URL as emitted by FetchPDFDownloadLinks and downloads
 // and returns the raw bytes.
+//
+// Caller should close the ReadCloser.
 func (f *DOUFetcher) FetchPDF(url string) (io.ReadCloser, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -160,12 +160,14 @@ func (f *DOUFetcher) FetchPDF(url string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	// defer resp.Body.Close()
 
 	var r io.ReadCloser
 	r = resp.Body
 	if resp.Header.Get("content-encoding") == "gzip" {
-		r, _ = gzip.NewReader(resp.Body)
+		r, err = gzip.NewReader(resp.Body)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return r, nil
