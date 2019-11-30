@@ -1,46 +1,10 @@
 # fetchdou
 
-> A package to help automated download the Brazilian government newspaper, Diário Oficial da União (DOU)
+> Download the Brazilian DOU - Diário Oficial da União
 
-A web scraper written in Go which downloads the PDF format copy of the [Diário Oficial da União][pt-wikipedia-url] - the official newspaper of the Brazilian government. Laws and governmental decrees are published here.
+A web scraper written in Go which helps to download the PDF format copy of the [Diário Oficial da União][pt-wikipedia-url] - the official newspaper of the Brazilian government. Laws and governmental decrees are published here.
 
-The idea is to download a full PDF copy of the DOU every day when published and store it in S3 (public for all to access) with a reliable URL schema so that anyone can download this whenever without having to use the bullshit website which sucks ass or rely on the Brazilian government to store historical copies of it (LOL).
-
-Ideally I will also include a full-text version which can scrape from the PDF version and enable some kinda of full-text copy (.txt) or full-text search so that anyone can search, again without having to use the bullshit Brazilian govt website which sucks ass.
-
-
-Notes on sls app:
-
-// 2018
-// 2019
-//   01
-//   11
-//     21
-// 2020
-//   01
-//     01
-// sha256sums of each PDF
-// index.html of the whole thing
-// /sgpub/do/secao1/2019/2019_11_21/2019_11_21_ASSINADO_do1.pdf
-
-// Note: All this to be done in SLS.
-//
-// Code for parsing the .gov.br code to get PDF links could be in another Go
-// package (which also has a command-line tool for downloading for a given
-// day).
-//
-// Needs to have CloudFront simply for the caching if nothing else.
-//
-// Let's do a s3 structure of YYYY/MM/DD/FILENAME.pdf
-//
-// W/every file laid down, do a scan of the "directory" and create an
-// index.html
-//   (This will be a Lambda triggered by the s3 put)
-//
-// One option is to use DynamoDB for a metadata store. Can keep sha256sums of
-// each PDF and also assist in the index.html for each "dir".
-
-
+Note that the Brazilian government has weird rules about when this can be downloaded (only from 12:00 - 23:59 during the day in Brasília time zone, for example).
 
 ## Table of Contents
 - [Install](#install)
@@ -58,10 +22,10 @@ go install github.com/nmarley/fetchdou/cmd/fetchdou
 
 ## Usage
 
-Example to download DOU from date of 2019-11-22:
+Example to download DOU from date of 2019-11-05:
 
 ```sh
-fetchdou 2019-11-22
+fetchdou 2019-11-05
 ```
 
 ## Contributing
