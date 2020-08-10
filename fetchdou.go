@@ -3,6 +3,7 @@ package fetchdou
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/tls"
 	"fmt"
 	"html"
 	"io"
@@ -12,6 +13,12 @@ import (
 	"strings"
 	"time"
 )
+
+func init() {
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+}
 
 var client = &http.Client{}
 
