@@ -97,7 +97,7 @@ func (f *DOUFetcher) FetchPDFDownloadLinks(date time.Time) ([]string, error) {
 	for k, v := range params {
 		postData.Set(k, v)
 	}
-	postURL := "http://pesquisa.in.gov.br/imprensa/core/jornalList.action"
+	postURL := "https://pesquisa.in.gov.br/imprensa/core/jornalList.action"
 	req, err := http.NewRequest("POST", postURL, strings.NewReader(postData.Encode()))
 	if err != nil {
 		return links, err
